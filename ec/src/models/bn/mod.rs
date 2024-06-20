@@ -58,7 +58,11 @@ pub trait BnConfig: 'static + Sized {
             .filter_map(|(p, q)| {
                 let (p, q) = (p.into(), q.into());
                 match !p.is_zero() && !q.is_zero() {
-                    true => Some((p, q.ell_coeffs.into_iter())),
+                    true => Some((
+                        -p.0.x / p.0.y,
+                        p.0.y.inverse().unwrap(),
+                        q.ell_coeffs.into_iter(),
+                    )),
                     false => None,
                 }
             })
@@ -72,14 +76,19 @@ pub trait BnConfig: 'static + Sized {
                         f.square_in_place();
                     }
 
-                    for (p, coeffs) in pairs.iter_mut() {
-                        Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                    for (coeff_1, coeff_2, coeffs) in pairs.iter_mut() {
+                        Bn::<Self>::ell_new(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
                     }
 
                     let bit = Self::ATE_LOOP_COUNT[i - 1];
                     if bit == 1 || bit == -1 {
-                        for (p, coeffs) in pairs.iter_mut() {
-                            Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+                        for (coeff_1, coeff_2, coeffs) in pairs.iter_mut() {
+                            Bn::<Self>::ell_new(
+                                &mut f,
+                                &coeffs.next().unwrap(),
+                                &coeff_1,
+                                &coeff_2,
+                            );
                         }
                     }
                 }
@@ -91,12 +100,12 @@ pub trait BnConfig: 'static + Sized {
             f.cyclotomic_inverse_in_place();
         }
 
-        for (p, coeffs) in &mut pairs {
-            Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+        for (coeff_1, coeff_2, coeffs) in &mut pairs {
+            Bn::<Self>::ell_new(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
         }
 
-        for (p, coeffs) in &mut pairs {
-            Bn::<Self>::ell(&mut f, &coeffs.next().unwrap(), &p.0);
+        for (coeff_1, coeff_2, coeffs) in &mut pairs {
+            Bn::<Self>::ell_new(&mut f, &coeffs.next().unwrap(), &coeff_1, &coeff_2);
         }
 
         MillerLoopOutput(f)
@@ -197,6 +206,34 @@ impl<P: BnConfig> Bn<P> {
                 c1.mul_assign_by_fp(&p.x);
                 f.mul_by_034(&c0, &c1, &c2);
             },
+        }
+    }
+
+    /// coeff_1 = -p.x / p.y
+    /// coeff_2 = 1 / p.y
+    fn ell_new(
+        f: &mut Fp12<P::Fp12Config>,
+        coeffs: &g2::EllCoeff<P>,
+        coeff_1: &P::Fp,
+        coeff_2: &P::Fp,
+    ) {
+        // c0 is always 1
+        let mut c0 = coeffs.0;
+        let mut c1 = coeffs.1;
+        let mut c2 = coeffs.2;
+
+        match P::TWIST_TYPE {
+            TwistType::M => {
+                c1.mul_assign_by_fp(&coeff_1);
+                c2.mul_assign_by_fp(&coeff_2);
+                f.mul_by_014(&c0, &c1, &c2);
+            },
+            TwistType::D => {
+                c1.mul_assign_by_fp(&coeff_1);
+                c2.mul_assign_by_fp(&coeff_2);
+                f.mul_by_034(&c0, &c1, &(-c2));
+            },
+            _ => {},
         }
     }
 
