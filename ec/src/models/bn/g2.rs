@@ -40,41 +40,85 @@ pub struct G2HomProjective<P: BnConfig> {
     z: Fp2<P::Fp2Config>,
 }
 
-pub fn affine_double_in_place<P: BnConfig>(
-    t: &mut G2Affine<P>,
-    three_div_two: &P::Fp,
-) -> EllCoeff<P> {
-    //  for affine coordinates
-    //  slope: alpha = 3 * x^2 / 2 * y
-    let mut alpha = t.x.square();
-    alpha /= t.y;
-    alpha.mul_assign_by_fp(&three_div_two);
-    let bias = t.y - alpha * t.x;
+impl<P: BnConfig> G2Prepared<P> {
+    fn affine_double_in_place(t: &mut G2Affine<P>, three_div_two: &P::Fp) -> EllCoeff<P> {
+        //  for affine coordinates
+        //  slope: alpha = 3 * x^2 / 2 * y
+        let mut alpha = t.x.square();
+        alpha /= t.y;
+        alpha.mul_assign_by_fp(&three_div_two);
+        let bias = t.y - alpha * t.x;
 
-    // update T
-    // T.x = alpha^2 - 2 * t.x
-    // T.y = -bias - alpha * T.x
-    let tx = alpha.square() - t.x.double();
-    t.y = -bias - alpha * tx;
-    t.x = tx;
+        // update T
+        // T.x = alpha^2 - 2 * t.x
+        // T.y = -bias - alpha * T.x
+        let tx = alpha.square() - t.x.double();
+        t.y = -bias - alpha * tx;
+        t.x = tx;
 
-    (Fp2::<P::Fp2Config>::ONE, alpha, bias)
-}
+        (Fp2::<P::Fp2Config>::ONE, alpha, bias)
+    }
 
-pub fn affine_add_in_place<P: BnConfig>(t: &mut G2Affine<P>, q: &G2Affine<P>) -> EllCoeff<P> {
-    // alpha = (t.y - q.y) / (t.x - q.x)
-    // bias = t.y - alpha * t.x
-    let alpha = (t.y - q.y) / (t.x - q.x);
-    let bias = t.y - alpha * t.x;
+    fn affine_add_in_place(t: &mut G2Affine<P>, q: &G2Affine<P>) -> EllCoeff<P> {
+        // alpha = (t.y - q.y) / (t.x - q.x)
+        // bias = t.y - alpha * t.x
+        let alpha = (t.y - q.y) / (t.x - q.x);
+        let bias = t.y - alpha * t.x;
 
-    // update T
-    // T.x = alpha^2 - t.x - q.x
-    // T.y = -bias - alpha * T.x
-    let tx = alpha.square() - t.x - q.x;
-    t.y = -bias - alpha * tx;
-    t.x = tx;
+        // update T
+        // T.x = alpha^2 - t.x - q.x
+        // T.y = -bias - alpha * T.x
+        let tx = alpha.square() - t.x - q.x;
+        t.y = -bias - alpha * tx;
+        t.x = tx;
 
-    (Fp2::<P::Fp2Config>::ONE, alpha, bias)
+        (Fp2::<P::Fp2Config>::ONE, alpha, bias)
+    }
+
+    pub fn from_affine(q: G2Affine<P>) -> Self {
+        if q.infinity {
+            G2Prepared {
+                ell_coeffs: vec![],
+                infinity: true,
+            }
+        } else {
+            // let two_inv = P::Fp::one().double().inverse().unwrap();
+            let two_inv = P::Fp::one().double().inverse().unwrap();
+            let three_div_two = P::Fp::one().double() + P::Fp::one() * two_inv;
+
+            let mut ell_coeffs = vec![];
+            let mut r = q.clone();
+
+            let neg_q = -q;
+
+            for bit in P::ATE_LOOP_COUNT.iter().rev().skip(1) {
+                ell_coeffs.push(Self::affine_double_in_place(&mut r, &three_div_two));
+
+                match bit {
+                    1 => ell_coeffs.push(Self::affine_add_in_place(&mut r, &q)),
+                    -1 => ell_coeffs.push(Self::affine_add_in_place(&mut r, &neg_q)),
+                    _ => continue,
+                }
+            }
+
+            let q1 = mul_by_char::<P>(q);
+            let mut q2 = mul_by_char::<P>(q1);
+
+            if P::X_IS_NEGATIVE {
+                r.y = -r.y;
+            }
+
+            q2.y = -q2.y;
+
+            ell_coeffs.push(Self::affine_add_in_place(&mut r, &q1));
+            ell_coeffs.push(Self::affine_add_in_place(&mut r, &q2));
+
+            Self {
+                ell_coeffs,
+                infinity: false,
+            }
+        }
+    }
 }
 
 impl<P: BnConfig> G2HomProjective<P> {
@@ -141,27 +185,22 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
                 infinity: true,
             }
         } else {
-            // let two_inv = P::Fp::one().double().inverse().unwrap();
             let two_inv = P::Fp::one().double().inverse().unwrap();
-            let three_div_two = P::Fp::one().double() + P::Fp::one() * two_inv;
-
             let mut ell_coeffs = vec![];
-            // let mut r = G2HomProjective::<P> {
-            //     x: q.x,
-            //     y: q.y,
-            //     z: Fp2::one(),
-            // };
-            let mut r = q.clone();
+            let mut r = G2HomProjective::<P> {
+                x: q.x,
+                y: q.y,
+                z: Fp2::one(),
+            };
 
             let neg_q = -q;
 
             for bit in P::ATE_LOOP_COUNT.iter().rev().skip(1) {
-                // ell_coeffs.push(r.double_in_place(&two_inv));
-                ell_coeffs.push(affine_double_in_place::<P>(&mut r, &three_div_two));
+                ell_coeffs.push(r.double_in_place(&two_inv));
 
                 match bit {
-                    1 => ell_coeffs.push(affine_add_in_place::<P>(&mut r, &q)),
-                    -1 => ell_coeffs.push(affine_add_in_place::<P>(&mut r, &neg_q)),
+                    1 => ell_coeffs.push(r.add_in_place(&q)),
+                    -1 => ell_coeffs.push(r.add_in_place(&neg_q)),
                     _ => continue,
                 }
             }
@@ -175,8 +214,8 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
 
             q2.y = -q2.y;
 
-            ell_coeffs.push(affine_add_in_place::<P>(&mut r, &q1));
-            ell_coeffs.push(affine_add_in_place::<P>(&mut r, &q2));
+            ell_coeffs.push(r.add_in_place(&q1));
+            ell_coeffs.push(r.add_in_place(&q2));
 
             Self {
                 ell_coeffs,

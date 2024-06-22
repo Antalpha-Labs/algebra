@@ -36,6 +36,35 @@ macro_rules! test_pairing {
             }
 
             #[test]
+            fn test_bilinearity_affine() {
+                for _ in 0..100 {
+                    let mut rng = test_rng();
+                    let a: <$Pairing as Pairing>::G1 = UniformRand::rand(&mut rng);
+                    let b: <$Pairing as Pairing>::G2 = UniformRand::rand(&mut rng);
+                    let s: <$Pairing as Pairing>::ScalarField = UniformRand::rand(&mut rng);
+
+                    let sa = a * s;
+                    let sb = b * s;
+
+                    let ans1 = <$Pairing>::pairing_affine(sa, b);
+                    let ans2 = <$Pairing>::pairing_affine(a, sb);
+                    let ans3 = <$Pairing>::pairing_affine(a, b) * s;
+
+                    assert_eq!(ans1, ans2);
+                    assert_eq!(ans2, ans3);
+
+                    assert_ne!(ans1, PairingOutput::zero());
+                    assert_ne!(ans2, PairingOutput::zero());
+                    assert_ne!(ans3, PairingOutput::zero());
+                    let group_order = <<$Pairing as Pairing>::ScalarField>::characteristic();
+
+                    assert_eq!(ans1.mul_bigint(group_order), PairingOutput::zero());
+                    assert_eq!(ans2.mul_bigint(group_order), PairingOutput::zero());
+                    assert_eq!(ans3.mul_bigint(group_order), PairingOutput::zero());
+                }
+            }
+
+            #[test]
             fn test_multi_pairing() {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
@@ -46,6 +75,21 @@ macro_rules! test_pairing {
                     let d = <$Pairing as Pairing>::G2::rand(rng).into_affine();
                     let ans1 = <$Pairing>::pairing(a, b) + &<$Pairing>::pairing(c, d);
                     let ans2 = <$Pairing>::multi_pairing(&[a, c], &[b, d]);
+                    assert_eq!(ans1, ans2);
+                }
+            }
+
+            #[test]
+            fn test_multi_pairing_affine() {
+                for _ in 0..ITERATIONS {
+                    let rng = &mut test_rng();
+
+                    let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                    let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                    let c = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                    let d = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                    let ans1 = <$Pairing>::pairing_affine(a, b) + &<$Pairing>::pairing_affine(c, d);
+                    let ans2 = <$Pairing>::multi_pairing_affine(&[a, c], &[b, d]);
                     assert_eq!(ans1, ans2);
                 }
             }
