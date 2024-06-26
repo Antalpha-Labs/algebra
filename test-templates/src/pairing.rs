@@ -6,6 +6,30 @@ macro_rules! test_pairing {
             use ark_ec::{pairing::*, CurveGroup, PrimeGroup};
             use ark_ff::{CyclotomicMultSubgroup, Field, PrimeField};
             use ark_std::{test_rng, One, UniformRand, Zero};
+
+            #[test]
+            fn test_ell() {
+                let rng = &mut test_rng();
+                // let mut f1 = <$Pairing as Pairing>::TargetField::rand(rng);
+                let mut f1 = <$Pairing as Pairing>::TargetField::one();
+                let mut f2 = f1.clone();
+                let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+
+                let b_prepared_1 = <$Pairing as Pairing>::G2Prepared::from(b);
+                <$Pairing>::ell(&mut f1, &b_prepared_1.ell_coeffs[0], &a);
+
+                let b_prepared_2 = <$Pairing as Pairing>::G2Prepared::from_affine(b);
+                <$Pairing>::ell_affine(
+                    &mut f2,
+                    &b_prepared_2.ell_coeffs[0],
+                    &(-a.x / a.y),
+                    &a.y.inverse().unwrap(),
+                );
+                f1.mul_by_fp(&a.y.inverse().unwrap());
+                assert_eq!(f1, f2);
+            }
+
             #[test]
             fn test_bilinearity_projective() {
                 for _ in 0..100 {
