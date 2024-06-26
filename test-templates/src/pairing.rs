@@ -7,7 +7,7 @@ macro_rules! test_pairing {
             use ark_ff::{CyclotomicMultSubgroup, Field, PrimeField};
             use ark_std::{test_rng, One, UniformRand, Zero};
             #[test]
-            fn test_bilinearity() {
+            fn test_bilinearity_projective() {
                 for _ in 0..100 {
                     let mut rng = test_rng();
                     let a: <$Pairing as Pairing>::G1 = UniformRand::rand(&mut rng);
@@ -65,7 +65,7 @@ macro_rules! test_pairing {
             }
 
             #[test]
-            fn test_multi_pairing() {
+            fn test_multi_pairing_projective() {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
 
@@ -92,6 +92,17 @@ macro_rules! test_pairing {
                     let ans2 = <$Pairing>::multi_pairing_affine(&[a, c], &[b, d]);
                     assert_eq!(ans1, ans2);
                 }
+            }
+
+            #[test]
+            fn test_pairing_affine_vs_projective() {
+                let rng = &mut test_rng();
+
+                let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                let ans1 = <$Pairing>::multi_pairing(&[a], &[b]);
+                let ans2 = <$Pairing>::multi_pairing_affine(&[a], &[b]);
+                assert_eq!(ans1, ans2);
             }
 
             #[test]
