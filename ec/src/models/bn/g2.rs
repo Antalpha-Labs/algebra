@@ -56,7 +56,7 @@ impl<P: BnConfig> G2Prepared<P> {
         t.y = -bias - alpha * tx;
         t.x = tx;
 
-        (Fp2::<P::Fp2Config>::ONE, alpha, bias)
+        (Fp2::<P::Fp2Config>::ONE, alpha, -bias)
     }
 
     fn affine_add_in_place(t: &mut G2Affine<P>, q: &G2Affine<P>) -> EllCoeff<P> {
@@ -72,7 +72,7 @@ impl<P: BnConfig> G2Prepared<P> {
         t.y = -bias - alpha * tx;
         t.x = tx;
 
-        (Fp2::<P::Fp2Config>::ONE, alpha, bias)
+        (Fp2::<P::Fp2Config>::ONE, alpha, -bias)
     }
 
     pub fn from_affine(q: G2Affine<P>) -> Self {
@@ -84,7 +84,7 @@ impl<P: BnConfig> G2Prepared<P> {
         } else {
             // let two_inv = P::Fp::one().double().inverse().unwrap();
             let two_inv = P::Fp::one().double().inverse().unwrap();
-            let three_div_two = P::Fp::one().double() + P::Fp::one() * two_inv;
+            let three_div_two = (P::Fp::one().double() + P::Fp::one()) * two_inv;
 
             let mut ell_coeffs = vec![];
             let mut r = q.clone();

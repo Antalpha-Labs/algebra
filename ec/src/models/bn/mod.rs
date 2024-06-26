@@ -287,7 +287,7 @@ impl<P: BnConfig> Bn<P> {
             TwistType::D => {
                 c1.mul_assign_by_fp(&xx);
                 c2.mul_assign_by_fp(&yy);
-                f.mul_by_034(&c0, &c1, &(-c2));
+                f.mul_by_034(&c0, &c1, &(c2));
             },
         }
     }
