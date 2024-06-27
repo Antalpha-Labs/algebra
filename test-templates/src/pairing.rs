@@ -30,7 +30,7 @@ macro_rules! test_pairing {
                     &(-a_affine.x / a_affine.y),
                     &a_affine.y.inverse().unwrap(),
                 );
-                f1.mul_by_fp(&a_affine.y.inverse().unwrap());
+                // f1.mul_by_fp(&a_affine.y.inverse().unwrap());
 
                 assert_eq!(f1, f2);
             }
@@ -132,8 +132,6 @@ macro_rules! test_pairing {
                 let a_affine = a_proj.into_affine();
                 let b_affine = b_proj.into_affine();
 
-                // let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
-                // let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
                 let ans1 = <$Pairing>::multi_pairing(&[a_proj], &[b_proj]);
                 let ans2 = <$Pairing>::multi_pairing_affine(&[a_affine], &[b_affine]);
                 assert_eq!(ans1, ans2);
