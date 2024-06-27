@@ -250,7 +250,8 @@ impl<'a, P: BnConfig> From<&'a G2Affine<P>> for G2Prepared<P> {
 
 impl<'a, P: BnConfig> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(q: &'a G2Projective<P>) -> Self {
-        q.into_affine().into()
+        // q.into_affine().into()
+        (*q).into()
     }
 }
 
