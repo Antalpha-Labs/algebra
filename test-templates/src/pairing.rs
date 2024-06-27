@@ -70,10 +70,10 @@ macro_rules! test_pairing {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
 
-                    let a = <$Pairing as Pairing>::G1::rand(rng); // .into_affine();
-                    let b = <$Pairing as Pairing>::G2::rand(rng); // .into_affine();
-                    let c = <$Pairing as Pairing>::G1::rand(rng); // .into_affine();
-                    let d = <$Pairing as Pairing>::G2::rand(rng); // .into_affine();
+                    let a = <$Pairing as Pairing>::G1::rand(rng);
+                    let b = <$Pairing as Pairing>::G2::rand(rng);
+                    let c = <$Pairing as Pairing>::G1::rand(rng);
+                    let d = <$Pairing as Pairing>::G2::rand(rng);
                     let ans1 = <$Pairing>::pairing(a, b) + &<$Pairing>::pairing(c, d);
                     let ans2 = <$Pairing>::multi_pairing(&[a, c], &[b, d]);
                     assert_eq!(ans1, ans2);
