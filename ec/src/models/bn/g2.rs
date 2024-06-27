@@ -76,7 +76,7 @@ impl<P: BnConfig> G2Prepared<P> {
     }
 
     /// !!! this method cannot be used directly for users, so we need reuse the `from` trait already exists
-    pub fn from_affine(q: G2Affine<P>) -> Self {
+    fn from_affine(q: G2Affine<P>) -> Self {
         if q.infinity {
             G2Prepared {
                 ell_coeffs: vec![],
@@ -250,7 +250,6 @@ impl<'a, P: BnConfig> From<&'a G2Affine<P>> for G2Prepared<P> {
 
 impl<'a, P: BnConfig> From<&'a G2Projective<P>> for G2Prepared<P> {
     fn from(q: &'a G2Projective<P>) -> Self {
-        // q.into_affine().into()
         (*q).into()
     }
 }

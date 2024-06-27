@@ -246,7 +246,7 @@ pub struct Bn<P: BnConfig>(PhantomData<fn() -> P>);
 
 impl<P: BnConfig> Bn<P> {
     /// Evaluates the line function at point p, where the line function is in projective mode
-    pub fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
+    fn ell(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, p: &G1Affine<P>) {
         let mut c0 = coeffs.0;
         let mut c1 = coeffs.1;
         let mut c2 = coeffs.2;
@@ -273,12 +273,7 @@ impl<P: BnConfig> Bn<P> {
     ///     y' = 1 / p.y
     /// output:
     ///     f = f * f_Q(P)', where f_Q(P)' is a vairant of f_Q(P), f_Q(P) = y' * f_Q(P)
-    pub fn ell_affine(
-        f: &mut Fp12<P::Fp12Config>,
-        coeffs: &g2::EllCoeff<P>,
-        xx: &P::Fp,
-        yy: &P::Fp,
-    ) {
+    fn ell_affine(f: &mut Fp12<P::Fp12Config>, coeffs: &g2::EllCoeff<P>, xx: &P::Fp, yy: &P::Fp) {
         // c0 is a trival value 1
         let c0 = coeffs.0;
         let mut c1 = coeffs.1;

@@ -8,34 +8,6 @@ macro_rules! test_pairing {
             use ark_std::{test_rng, One, UniformRand, Zero};
 
             #[test]
-            fn test_ell() {
-                let rng = &mut test_rng();
-                // let mut f1 = <$Pairing as Pairing>::TargetField::rand(rng);
-                let mut f1 = <$Pairing as Pairing>::TargetField::one();
-                let mut f2 = f1.clone();
-                let a_proj = <$Pairing as Pairing>::G1::rand(rng);
-                let b_proj = <$Pairing as Pairing>::G2::rand(rng);
-                let a_affine = a_proj.into_affine();
-                let b_affine = b_proj.into_affine();
-
-                // projective mode
-                let b_prepared_1 = <$Pairing as Pairing>::G2Prepared::from(b_proj);
-                <$Pairing>::ell(&mut f1, &b_prepared_1.ell_coeffs[0], &a_affine);
-
-                // affine mode
-                let b_prepared_2 = <$Pairing as Pairing>::G2Prepared::from(b_affine);
-                <$Pairing>::ell_affine(
-                    &mut f2,
-                    &b_prepared_2.ell_coeffs[0],
-                    &(-a_affine.x / a_affine.y),
-                    &a_affine.y.inverse().unwrap(),
-                );
-                // f1.mul_by_fp(&a_affine.y.inverse().unwrap());
-
-                assert_eq!(f1, f2);
-            }
-
-            #[test]
             fn test_bilinearity_projective() {
                 for _ in 0..100 {
                     let mut rng = test_rng();
