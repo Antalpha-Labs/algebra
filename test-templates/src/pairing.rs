@@ -13,20 +13,25 @@ macro_rules! test_pairing {
                 // let mut f1 = <$Pairing as Pairing>::TargetField::rand(rng);
                 let mut f1 = <$Pairing as Pairing>::TargetField::one();
                 let mut f2 = f1.clone();
-                let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
-                let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                let a_proj = <$Pairing as Pairing>::G1::rand(rng);
+                let b_proj = <$Pairing as Pairing>::G2::rand(rng);
+                let a_affine = a_proj.into_affine();
+                let b_affine = b_proj.into_affine();
 
-                let b_prepared_1 = <$Pairing as Pairing>::G2Prepared::from(b);
-                <$Pairing>::ell(&mut f1, &b_prepared_1.ell_coeffs[0], &a);
+                // projective mode
+                let b_prepared_1 = <$Pairing as Pairing>::G2Prepared::from(b_proj);
+                <$Pairing>::ell(&mut f1, &b_prepared_1.ell_coeffs[0], &a_affine);
 
-                let b_prepared_2 = <$Pairing as Pairing>::G2Prepared::from_affine(b);
+                // affine mode
+                let b_prepared_2 = <$Pairing as Pairing>::G2Prepared::from(b_affine);
                 <$Pairing>::ell_affine(
                     &mut f2,
                     &b_prepared_2.ell_coeffs[0],
-                    &(-a.x / a.y),
-                    &a.y.inverse().unwrap(),
+                    &(-a_affine.x / a_affine.y),
+                    &a_affine.y.inverse().unwrap(),
                 );
-                f1.mul_by_fp(&a.y.inverse().unwrap());
+                f1.mul_by_fp(&a_affine.y.inverse().unwrap());
+
                 assert_eq!(f1, f2);
             }
 
@@ -70,9 +75,9 @@ macro_rules! test_pairing {
                     let sa = a * s;
                     let sb = b * s;
 
-                    let ans1 = <$Pairing>::pairing_affine(sa, b);
-                    let ans2 = <$Pairing>::pairing_affine(a, sb);
-                    let ans3 = <$Pairing>::pairing_affine(a, b) * s;
+                    let ans1 = <$Pairing>::pairing_affine(sa, b.into_affine());
+                    let ans2 = <$Pairing>::pairing_affine(a, sb.into_affine());
+                    let ans3 = <$Pairing>::pairing_affine(a, b.into_affine()) * s;
 
                     assert_eq!(ans1, ans2);
                     assert_eq!(ans2, ans3);
@@ -93,10 +98,10 @@ macro_rules! test_pairing {
                 for _ in 0..ITERATIONS {
                     let rng = &mut test_rng();
 
-                    let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
-                    let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
-                    let c = <$Pairing as Pairing>::G1::rand(rng).into_affine();
-                    let d = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                    let a = <$Pairing as Pairing>::G1::rand(rng); // .into_affine();
+                    let b = <$Pairing as Pairing>::G2::rand(rng); // .into_affine();
+                    let c = <$Pairing as Pairing>::G1::rand(rng); // .into_affine();
+                    let d = <$Pairing as Pairing>::G2::rand(rng); // .into_affine();
                     let ans1 = <$Pairing>::pairing(a, b) + &<$Pairing>::pairing(c, d);
                     let ans2 = <$Pairing>::multi_pairing(&[a, c], &[b, d]);
                     assert_eq!(ans1, ans2);
@@ -122,10 +127,15 @@ macro_rules! test_pairing {
             fn test_pairing_affine_vs_projective() {
                 let rng = &mut test_rng();
 
-                let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
-                let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
-                let ans1 = <$Pairing>::multi_pairing(&[a], &[b]);
-                let ans2 = <$Pairing>::multi_pairing_affine(&[a], &[b]);
+                let a_proj = <$Pairing as Pairing>::G1::rand(rng);
+                let b_proj = <$Pairing as Pairing>::G2::rand(rng);
+                let a_affine = a_proj.into_affine();
+                let b_affine = b_proj.into_affine();
+
+                // let a = <$Pairing as Pairing>::G1::rand(rng).into_affine();
+                // let b = <$Pairing as Pairing>::G2::rand(rng).into_affine();
+                let ans1 = <$Pairing>::multi_pairing(&[a_proj], &[b_proj]);
+                let ans2 = <$Pairing>::multi_pairing_affine(&[a_affine], &[b_affine]);
                 assert_eq!(ans1, ans2);
             }
 
