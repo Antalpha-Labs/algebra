@@ -75,6 +75,7 @@ impl<P: BnConfig> G2Prepared<P> {
         (Fp2::<P::Fp2Config>::ONE, alpha, -bias)
     }
 
+    /// !!! this method cannot be used directly for users, so we need reuse the `from` trait already exists
     pub fn from_affine(q: G2Affine<P>) -> Self {
         if q.infinity {
             G2Prepared {
@@ -177,8 +178,24 @@ impl<P: BnConfig> Default for G2Prepared<P> {
     }
 }
 
+/// !!! affine mode is for the purpose of verifying pairings
 impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
     fn from(q: G2Affine<P>) -> Self {
+        if q.infinity {
+            G2Prepared {
+                ell_coeffs: vec![],
+                infinity: true,
+            }
+        } else {
+            Self::from_affine(q)
+        }
+    }
+}
+
+/// !!! projective mode is for the purpose of computing pairings
+impl<P: BnConfig> From<G2Projective<P>> for G2Prepared<P> {
+    fn from(q: G2Projective<P>) -> Self {
+        let q = q.into_affine();
         if q.infinity {
             G2Prepared {
                 ell_coeffs: vec![],
@@ -222,12 +239,6 @@ impl<P: BnConfig> From<G2Affine<P>> for G2Prepared<P> {
                 infinity: false,
             }
         }
-    }
-}
-
-impl<P: BnConfig> From<G2Projective<P>> for G2Prepared<P> {
-    fn from(q: G2Projective<P>) -> Self {
-        q.into_affine().into()
     }
 }
 
