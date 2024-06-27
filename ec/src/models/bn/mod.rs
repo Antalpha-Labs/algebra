@@ -110,6 +110,8 @@ pub trait BnConfig: 'static + Sized {
             .into_iter()
             .zip_eq(b)
             .filter_map(|(p, q)| {
+                // if input q is projective coordinates, then we will enter `into`` computing pairing mode
+                // otherwise if input q is affine coordinates, then we will enter `into` verifying pairing mode
                 let (p, q) = (p.into(), q.into());
                 match !p.is_zero() && !q.is_zero() {
                     true => Some((
